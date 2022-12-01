@@ -295,6 +295,9 @@ function App() {
     setHasNotFoundError(false);
     setIsLoading(true);
 
+    ref.current.getAllCoinsController?.abort(); //avoid duplicate requests upon consecutive search clicks
+    ref.current.getOnePriceController?.abort();
+
     ref.current.getAllCoinsController = new AbortController();
 
     let allCoins: GetAllCoinsResponseType;
