@@ -31,10 +31,5 @@ export interface GetPricesResponseType {
 }
 
 export interface RefType {
-  intervalId?: ReturnType<typeof setInterval>;
   coins: CoinType[];
-  animationEndTimeoutId?: ReturnType<typeof setTimeout>;
-  getAllCoinsController?: AbortController;
-  getPricesController?: AbortController;
-  getOnePriceController?: AbortController;
 }

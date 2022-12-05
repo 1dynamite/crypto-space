@@ -12,6 +12,12 @@ import {
 
 import { getAllCoins, getPrices } from "./api";
 
+let intervalId: ReturnType<typeof setInterval>;
+let animationEndTimeoutId: ReturnType<typeof setTimeout>;
+let getAllCoinsController: AbortController;
+let getPricesController: AbortController;
+let getOnePriceController: AbortController;
+
 function App() {
   const [coins, setCoins] = useState<CoinType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,12 +28,12 @@ function App() {
 
   useEffect(() => {
     const fetchDogecoin = async () => {
-      ref.current.getAllCoinsController = new AbortController();
+      getAllCoinsController = new AbortController();
 
       let allCoins: GetAllCoinsResponseType;
       try {
         setIsDogecoinLoading(true);
-        allCoins = await getAllCoins(ref.current.getAllCoinsController.signal);
+        allCoins = await getAllCoins(getAllCoinsController.signal);
         setIsDogecoinLoading(false);
       } catch (e) {
         console.log(e);
@@ -48,13 +54,13 @@ function App() {
             },
           ]);
 
-          ref.current.getOnePriceController = new AbortController();
+          getOnePriceController = new AbortController();
 
           let price: GetPricesResponseType;
           try {
             price = await getPrices(
               [value.Symbol],
-              ref.current.getOnePriceController.signal
+              getOnePriceController.signal
             );
           } catch (e) {
             console.log(e);
@@ -77,23 +83,23 @@ function App() {
   }, []);
 
   useEffect(() => {
-    ref.current.intervalId = setInterval(async () => {
+    intervalId = setInterval(async () => {
       if (ref.current.coins.length === 0) return;
 
-      ref.current.getPricesController = new AbortController();
+      getPricesController = new AbortController();
 
       let prices: GetPricesResponseType;
       try {
         prices = await getPrices(
           ref.current.coins.map((el) => el.symbolText),
-          ref.current.getPricesController.signal
+          getPricesController.signal
         );
       } catch (e) {
         console.log(e);
         return;
       }
 
-      ref.current.animationEndTimeoutId = setTimeout(
+      animationEndTimeoutId = setTimeout(
         () =>
           setCoins((coins) =>
             coins.map((el) => ({ ...el, animationEnded: true }))
@@ -122,15 +128,9 @@ function App() {
       );
     }, 5000);
 
-    const intervalId = ref.current.intervalId;
-    const animationTimeoutId = ref.current.animationEndTimeoutId;
-    const getAllCoinsController = ref.current.getAllCoinsController;
-    const getPricesController = ref.current.getPricesController;
-    const getOnePriceController = ref.current.getOnePriceController;
-
     return () => {
       clearInterval(intervalId);
-      clearTimeout(animationTimeoutId);
+      clearTimeout(animationEndTimeoutId);
       getAllCoinsController?.abort();
       getPricesController?.abort();
       getOnePriceController?.abort();
@@ -141,14 +141,14 @@ function App() {
     setHasNotFoundError(false);
     setIsLoading(true);
 
-    ref.current.getAllCoinsController?.abort(); //avoid duplicate requests upon consecutive search clicks
-    ref.current.getOnePriceController?.abort();
+    getAllCoinsController?.abort(); //avoid duplicate requests upon consecutive search clicks
+    getOnePriceController?.abort();
 
-    ref.current.getAllCoinsController = new AbortController();
+    getAllCoinsController = new AbortController();
 
     let allCoins: GetAllCoinsResponseType;
     try {
-      allCoins = await getAllCoins(ref.current.getAllCoinsController.signal);
+      allCoins = await getAllCoins(getAllCoinsController.signal);
     } catch (e) {
       console.log(e);
       return;
@@ -170,14 +170,11 @@ function App() {
           },
         ]);
 
-        ref.current.getOnePriceController = new AbortController();
+        getOnePriceController = new AbortController();
 
         let price: GetPricesResponseType;
         try {
-          price = await getPrices(
-            [value.Symbol],
-            ref.current.getOnePriceController.signal
-          );
+          price = await getPrices([value.Symbol], getOnePriceController.signal);
         } catch (e) {
           console.log(e);
           return;
