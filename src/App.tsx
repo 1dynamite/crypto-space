@@ -1,172 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 
-interface CoinType {
-  id: string;
-  symbolUrl: string;
-  symbolText: string;
-  name: string;
-  price?: number;
-  hasActivity?: null | "bullish" | "bearish";
-  animationEnded?: boolean;
-}
+import SearchBar from "./components/search-bar";
+import CoinItem from "./components/coin-item";
+import {
+  CoinType,
+  GetAllCoinsResponseType,
+  GetPricesResponseType,
+  RefType,
+} from "./types";
 
-interface CoinItemPropsType {
-  coinData: CoinType;
-  handleDelete: (id: string) => void;
-}
-
-interface GetAllCoinsResponseType {
-  Data: {
-    [index: string]: {
-      CoinName: string;
-      Id: string;
-      ImageUrl: string;
-      Symbol: string;
-    };
-  };
-}
-
-interface GetPricesResponseType {
-  [index: string]: {
-    USD: number;
-  };
-}
-
-interface RefType {
-  intervalId?: ReturnType<typeof setInterval>;
-  coins: CoinType[];
-  animationEndTimeoutId?: ReturnType<typeof setTimeout>;
-  getAllCoinsController?: AbortController;
-  getPricesController?: AbortController;
-  getOnePriceController?: AbortController;
-}
-
-const [getAllCoins, getPrices] = (() => {
-  const API_KEY =
-    "bdc372ca6bcc9dc7048dff2da9c479d6b522af36cf4fd2825302a980a7bb82e8";
-
-  const BASE_URL = "https://min-api.cryptocompare.com/data";
-
-  const getAllCoins = async (signal: AbortSignal) => {
-    const url = `${BASE_URL}/all/coinlist?api_key=${API_KEY}`;
-
-    try {
-      const value = await fetch(url, { signal });
-      return (await value.json()) as Promise<GetAllCoinsResponseType>;
-    } catch (e) {
-      throw e;
-    }
-  };
-
-  const getPrices = async (coinSymbols: string[], signal: AbortSignal) => {
-    const commaSeparatedSymbols = coinSymbols.reduce(
-      (acc, el, i) => `${acc},${el}`
-    );
-
-    const url = `${BASE_URL}/pricemulti?fsyms=${commaSeparatedSymbols}&tsyms=USD&api_key=${API_KEY}`;
-
-    try {
-      const value = await fetch(url, { signal });
-      return (await value.json()) as GetPricesResponseType;
-    } catch (e) {
-      throw e;
-    }
-  };
-
-  return [getAllCoins, getPrices];
-})();
-
-function CoinItem(props: CoinItemPropsType) {
-  return (
-    <div className="coin-item">
-      <div className="coin-cell">
-        <img
-          alt="coin-icon"
-          src={props.coinData.symbolUrl}
-          width={32}
-          height={32}
-          className="coin-icon"
-        />
-        <div className="coin-name">
-          <span>{props.coinData.name}</span>
-          <span>{props.coinData.symbolText}</span>
-        </div>
-      </div>
-      <div className="price-cell">
-        <span
-          className={`price-text ${
-            !props.coinData.hasActivity || props.coinData.animationEnded
-              ? ""
-              : props.coinData.hasActivity === "bullish"
-              ? "price-text-bullish"
-              : "price-text-bearish"
-          }`}
-        >
-          $ {props.coinData.price}
-        </span>
-      </div>
-      <div
-        className="delete-icon"
-        onClick={() => props.handleDelete(props.coinData.id)}
-      >
-        <img
-          alt="delete-icon"
-          src="https://img.icons8.com/material-rounded/24/null/delete-forever.png"
-        />
-      </div>
-    </div>
-  );
-}
-
-function SearchBar(props: {
-  handleSearch: (value: string) => void;
-  isLoading: boolean;
-  hasNotFounError: boolean;
-}) {
-  const [searchValue, setSearchValue] = useState("");
-  const [focus, setFocus] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const handleFocus = () => {
-    setFocus(true);
-  };
-
-  const handleBlur = () => {
-    setFocus(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.code === "Enter") ref.current?.click();
-  };
-
-  return (
-    <div
-      className={`search-bar ${
-        props.hasNotFounError ? "search-bar-error-message" : ""
-      }`}
-    >
-      <input
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-        className="search-input"
-        placeholder="Search"
-        onFocus={handleFocus}
-        onBlur={handleBlur}
-        onKeyDown={handleKeyDown}
-      />
-      <div
-        className="search-icon"
-        onClick={() => props.handleSearch(searchValue)}
-        ref={ref}
-        style={{ backgroundColor: focus ? "rgba(0,0,0,0.1)" : "" }}
-      >
-        <img alt="search-icon" src="search-icon.png" />
-      </div>
-      {props.isLoading && <div className="lds-dual-ring"></div>}
-    </div>
-  );
-}
+import { getAllCoins, getPrices } from "./api";
 
 function App() {
   const [coins, setCoins] = useState<CoinType[]>([]);
@@ -230,7 +74,9 @@ function App() {
     };
 
     fetchDogecoin();
+  }, []);
 
+  useEffect(() => {
     ref.current.intervalId = setInterval(async () => {
       if (ref.current.coins.length === 0) return;
 
